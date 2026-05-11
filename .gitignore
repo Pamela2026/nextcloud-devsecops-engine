@@ -1,0 +1,5 @@
+*.env
+config.yaml
+secrets.json
+*.key
+*.pem
