@@ -1,0 +1,13 @@
+slack_webhook: "YOUR_SLACK_WEBHOOK_HERE"
+
+thresholds:
+  z_score: 3.0
+  spike_multiplier: 5
+
+ban_durations:
+  - 600
+  - 1800
+  - 7200
+  - permanent
+
+dashboard_port: 8000
