@@ -40,8 +40,8 @@ hourly_baselines = {
 }
 
 # Store per-hour statistics
-current_mean = {hour: 1.0 for hour in range(24)}
-current_std = {hour: 0.1 for hour in range(24)}
+current_mean = {hour: None for hour in range(24)}
+current_std = {hour: None for hour in range(24)}
 
 # =========================
 # SYNCHRONIZATION

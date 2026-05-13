@@ -99,6 +99,15 @@ def detector_worker(logs):
                 current_hour = time.localtime().tm_hour
                 mean = state.current_mean[current_hour]
                 std = state.current_std[current_hour]
+                baseline_ready = mean is not None and std is not None
+
+                if not baseline_ready:
+                    print(
+                        f"[DETECTOR] Baseline not ready for hour={current_hour}; "
+                        f"skipping anomaly detection"
+                    )
+                    continue
+
                 std = max(std, 0.1)  # Floor std to prevent division issues
                 
                 # =========================
