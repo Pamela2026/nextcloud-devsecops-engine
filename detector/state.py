@@ -3,37 +3,45 @@ import threading
 import time
 import json
 import os
+import yaml
+
+# =========================
+# LOAD CONFIG
+# =========================
+with open("config.yaml", "r") as f:
+    state_config = yaml.safe_load(f)
 
 # =========================
 # TIME CONFIG
 # =========================
-WINDOW = 10
+WINDOW = 60  # 60-second sliding window for rate calculation
 
 # =========================
 # TRAFFIC WINDOWS
 # =========================
-ip_windows = defaultdict(deque)
-global_window = deque()
+ip_windows = defaultdict(deque)  # {ip: deque of timestamps}
+global_window = deque()           # deque of all request timestamps
 
-ip_errors = defaultdict(int)
-ip_requests = defaultdict(int)
+ip_errors = defaultdict(int)      # {ip: count of 4xx/5xx}
+ip_requests = defaultdict(int)    # {ip: total requests}
 
 # =========================
 # SECURITY STATE
 # =========================
-offenses = defaultdict(int)
-banned_ips = {}
+offenses = defaultdict(int)       # {ip: offense count for escalation}
+banned_ips = {}                   # {ip: {expires: timestamp or None}}
 
 # =========================
-# BASELINE SYSTEM
+# BASELINE SYSTEM (per hour)
 # =========================
 hourly_baselines = {
-    hour: deque(maxlen=1800)
+    hour: deque(maxlen=1800)  # 30 min * 60 sec = 1800 samples max
     for hour in range(24)
 }
 
-current_mean = 0.0
-current_std = 0.0
+# Store per-hour statistics
+current_mean = {hour: 1.0 for hour in range(24)}
+current_std = {hour: 0.1 for hour in range(24)}
 
 # =========================
 # SYNCHRONIZATION
