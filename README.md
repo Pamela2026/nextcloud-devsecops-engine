@@ -273,7 +273,7 @@ slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 
 ## 📊 Live Metrics Dashboard
 
-**URL:** `http://<server-ip>:8000`
+**URL:** `http://54.172.132.144/:8000`
 
 **Refresh Rate:** Every 3 seconds
 
@@ -343,7 +343,7 @@ Baseline Recalculation:
 ### Step 1: Clone Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Pamela2026/nextcloud-devsecops-engine.git
 cd nextcloud-devsecops-engine
 ```
 
@@ -567,7 +567,7 @@ curl -X POST https://hooks.slack.com/services/YOUR/WEBHOOK \
 
 ## 👤 Author
 
-**Your Name** - DevSecOps Engineer at HNG Cloud
+**Pamela Patrick** - DevOps Engineer
 
 ---
 
@@ -585,5 +585,5 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Last Updated:** May 11, 2024  
-**Status:** Production Ready
+**Last Updated:** May 13, 2024  
+

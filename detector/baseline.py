@@ -1,6 +1,8 @@
 import statistics
 import time
 import state
+from notifier import send_slack_alert
+
 
 def baseline_worker():
     """
@@ -79,6 +81,19 @@ def baseline_worker():
                             f"mean={mean_val:.2f} | "
                             f"std={std_val:.2f}\n"
                         )
+                    
+                    # =========================
+                    # SLACK ALERT
+                    # =========================
+                    alert_message = (
+                        f"📊 **BASELINE UPDATED**\n\n"
+                        f"**Hour:** {current_hour}:00\n"
+                        f"**Samples:** {len(baseline_data)}\n"
+                        f"**Mean RPS:** {mean_val:.2f} req/s\n"
+                        f"**Stddev:** {std_val:.2f}\n"
+                        f"**Timestamp:** {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                    )
+                    send_slack_alert(alert_message)
         
         except Exception as e:
             print(f"[BASELINE ERROR] {e}")
