@@ -87,19 +87,23 @@ ssh ubuntu@<VPS_IP>
 # Update system
 sudo apt-get update && sudo apt-get upgrade -y
 
-# Install Docker & Docker Compose
+# Install Docker (includes Docker Compose v2 plugin)
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 
-sudo apt-get install -y docker-compose
+# Verify Docker Compose is available (comes with Docker)
+docker compose version
+
 sudo usermod -aG docker $USER
-# (Log out and back in for group changes to take effect)
+newgrp docker  # for group changes to take effect
+groups  # Verify the change
+
 ```
 
 ### Step 2: Clone Repository
 
 ```bash
-git clone <YOUR_REPO_URL>
+git clone https://github.com/Pamela2026/nextcloud-devsecops-engine.git
 cd nextcloud-devsecops-engine
 ```
 
@@ -133,10 +137,10 @@ dashboard_port: 8000
 
 ```bash
 # Start all services (Nextcloud, Nginx, Detector)
-docker-compose up -d
+docker compose up -d
 
 # Verify all containers running
-docker-compose ps
+docker compose ps
 # Output should show:
 # nextcloud     - running
 # hng-nginx     - running  
@@ -367,8 +371,8 @@ docker logs anomaly-detector
 # 3. iptables not available → check privileged: true in compose
 
 # Fix and restart:
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ### No logs being processed

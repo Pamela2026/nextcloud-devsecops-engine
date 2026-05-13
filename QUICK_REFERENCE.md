@@ -12,10 +12,10 @@ nano detector/config.yaml
 # Update: slack_webhook: "https://hooks.slack.com/..."
 
 # 3. Deploy
-docker-compose up -d
+docker compose up -d
 
 # 4. Verify running
-docker-compose ps
+docker compose ps
 
 # 5. Access dashboard
 # Browser: http://<your-vps-ip>:8000
@@ -45,10 +45,10 @@ curl http://localhost:8000/metrics | jq
 docker exec anomaly-detector cat state_store.json | jq
 
 # Stop the daemon
-docker-compose down
+docker compose down
 
 # Restart daemon (keeps state)
-docker-compose restart anomaly-detector
+docker compose restart anomaly-detector
 
 # View config
 docker exec anomaly-detector cat config.yaml
@@ -167,8 +167,8 @@ dashboard_port: 8000        # Access at http://<ip>:8000
 Problem: Daemon not starting
 ├─ Check logs: docker logs anomaly-detector
 ├─ Config syntax error? → Fix YAML, redeploy
-├─ Dependencies missing? → docker-compose build --no-cache
-└─ Restart: docker-compose down && docker-compose up -d
+├─ Dependencies missing? → docker compose build --no-cache
+└─ Restart: docker compose down && docker compose up -d
 
 Problem: No logs being processed
 ├─ Check Nginx logs: docker exec hng-nginx ls -la /var/log/nginx/
@@ -284,7 +284,7 @@ Ban Duration: 600s
 ## 🧪 Testing Workflow
 
 ```
-1. Deploy: docker-compose up -d
+1. Deploy: docker compose up -d
 2. Wait for baseline: 30+ minutes OR use spike generator
 3. Generate traffic: for i in {1..1000}; do curl http://localhost/ & done
 4. Monitor detection: docker logs -f anomaly-detector

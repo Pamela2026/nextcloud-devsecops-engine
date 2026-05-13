@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements_new.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Create audit log file
 RUN touch audit.log

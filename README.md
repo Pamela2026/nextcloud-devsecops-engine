@@ -368,7 +368,7 @@ dashboard_port: 8000
 ### Step 3: Deploy
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Step 4: Verify
