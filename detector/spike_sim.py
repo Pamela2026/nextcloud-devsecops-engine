@@ -7,13 +7,23 @@ ATTACK_IP = "203.0.113.99"  # reserved safe test IP (RFC 5737)
 def normal_noise(logs):
     while True:
         ip = f"10.0.0.{random.randint(1, 50)}"
-        logs.put((ip, time.time()))
+        logs.put({
+            "source_ip": ip,
+            "status": 200,
+            "path": "/",
+            "timestamp": time.time(),
+        })
         time.sleep(0.2)
 
 def spike_attack(logs):
     # concentrated burst → guaranteed detection
     for _ in range(500):
-        logs.put((ATTACK_IP, time.time()))
+        logs.put({
+            "source_ip": ATTACK_IP,
+            "status": 200,
+            "path": "/",
+            "timestamp": time.time(),
+        })
         time.sleep(0.005)
 
 def run_simulator(logs):

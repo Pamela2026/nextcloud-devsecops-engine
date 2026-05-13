@@ -35,9 +35,18 @@ def detector_worker(logs):
             
             print(f"[DETECTOR] Log received: {log}")
             
-            ip = log.get("source_ip", "unknown")
-            status = log.get("status", 200)
-            path = log.get("path", "/")
+            if isinstance(log, dict):
+                ip = log.get("source_ip", "unknown")
+                status = log.get("status", 200)
+                path = log.get("path", "/")
+            elif isinstance(log, tuple):
+                ip = log[0] if len(log) > 0 else "unknown"
+                status = 200
+                path = "/"
+            else:
+                ip = str(log)
+                status = 200
+                path = "/"
             
             # =========================
             # SKIP INTERNAL IPS
