@@ -531,6 +531,11 @@ curl -X POST https://hooks.slack.com/services/YOUR/WEBHOOK \
 
 ## 📈 Performance Tuning
 
+### Current Optimization Notes
+- Uses per-IP locking to reduce global contention on shared state
+- Baseline statistics are cached for 60 seconds to avoid repeated recalculation
+- Alerts are rate-limited per IP to prevent Slack spam during sustained attacks
+
 ### Baseline Window Size
 - Increase from 30 min to 60 min for less noise (edit `state.py`)
 - Decrease for faster adaptation to traffic changes
