@@ -64,6 +64,14 @@ def baseline_worker():
                     state.current_mean[current_hour] = mean_val
                     state.current_std[current_hour] = std_val
                     
+                    # Cache for faster detector lookups
+                    with state.baseline_cache_lock:
+                        state.baseline_cache[current_hour] = {
+                            "mean": mean_val,
+                            "std": std_val,
+                            "timestamp": time.time()
+                        }
+                    
                     print(
                         f"[BASELINE] hour={current_hour} "
                         f"samples={len(baseline_data)} "

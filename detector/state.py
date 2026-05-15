@@ -47,6 +47,19 @@ current_std = {hour: None for hour in range(24)}
 # SYNCHRONIZATION
 # =========================
 lock = threading.Lock()
+ip_locks = defaultdict(threading.Lock)  # Per-IP locks for concurrent updates
+
+# =========================
+# BASELINE CACHING
+# =========================
+baseline_cache = {}  # {hour: {"mean": X, "std": Y, "timestamp": T}}
+baseline_cache_lock = threading.Lock()
+
+# =========================
+# ALERT RATE LIMITING
+# =========================
+last_alert_time = defaultdict(float)  # {ip: last_alert_timestamp}
+ALERT_COOLDOWN = 60  # Only alert once per IP per 60 seconds
 
 start_time = time.time()
 

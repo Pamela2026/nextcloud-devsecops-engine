@@ -60,106 +60,115 @@ def detector_worker(logs):
                 continue
             
             now = time.time()
+            current_hour = time.localtime().tm_hour
             
-            with state.lock:
-                # =========================
-                # UPDATE SLIDING WINDOWS (60-second)
-                # =========================
+            # =========================
+            # GET CACHED BASELINE (or check if stale)
+            # =========================
+            with state.baseline_cache_lock:
+                cached = state.baseline_cache.get(current_hour)
+                if cached and (now - cached["timestamp"]) < 60:
+                    mean = cached["mean"]
+                    std = cached["std"]
+                    baseline_ready = True
+                else:
+                    mean = state.current_mean[current_hour]
+                    std = state.current_std[current_hour]
+                    baseline_ready = mean is not None and std is not None
+            
+            if not baseline_ready:
+                print(
+                    f"[DETECTOR] Baseline not ready for hour={current_hour}; "
+                    f"skipping anomaly detection"
+                )
+                continue
+            
+            # =========================
+            # USE PER-IP LOCK for window updates
+            # =========================
+            with state.ip_locks[ip]:
                 state.ip_windows[ip].append(now)
-                state.global_window.append(now)
                 
-                # =========================
-                # EVICT OLD ENTRIES (outside 60s window)
-                # =========================
                 while (
                     state.ip_windows[ip]
                     and now - state.ip_windows[ip][0] > state.WINDOW
                 ):
                     state.ip_windows[ip].popleft()
                 
+                ip_rate = len(state.ip_windows[ip])
+                state.ip_requests[ip] += 1
+                if status >= 400:
+                    state.ip_errors[ip] += 1
+                
+                error_rate = 0
+                if state.ip_requests[ip] > 0:
+                    error_rate = state.ip_errors[ip] / state.ip_requests[ip]
+            
+            # =========================
+            # UPDATE GLOBAL WINDOW (needs global lock)
+            # =========================
+            with state.lock:
+                state.global_window.append(now)
                 while (
                     state.global_window
                     and now - state.global_window[0] > state.WINDOW
                 ):
                     state.global_window.popleft()
-                
-                # =========================
-                # TRACK ERROR RATES
-                # =========================
-                state.ip_requests[ip] += 1
-                if status >= 400:
-                    state.ip_errors[ip] += 1
-                
-                # =========================
-                # CURRENT RATES
-                # =========================
-                ip_rate = len(state.ip_windows[ip])
-                global_rate = len(state.global_window)
-                
-                current_hour = time.localtime().tm_hour
-                mean = state.current_mean[current_hour]
-                std = state.current_std[current_hour]
-                baseline_ready = mean is not None and std is not None
-
-                if not baseline_ready:
-                    print(
-                        f"[DETECTOR] Baseline not ready for hour={current_hour}; "
-                        f"skipping anomaly detection"
-                    )
-                    continue
-
-                std = max(std, 0.1)  # Floor std to prevent division issues
-                
-                # =========================
-                # Z-SCORE CALCULATION
-                # =========================
-                if mean > 0:
-                    z_score = (ip_rate - mean) / std
-                else:
-                    z_score = 0
-                
+            
+            std = max(std, 0.1)
+            
+            # =========================
+            # Z-SCORE CALCULATION (no lock needed - cached values)
+            # =========================
+            if mean > 0:
+                z_score = (ip_rate - mean) / std
+            else:
+                z_score = 0
+            
+            print(
+                f"[DETECTOR] ip={ip} "
+                f"rate={ip_rate} "
+                f"mean={mean:.2f} "
+                f"std={std:.2f} "
+                f"z={z_score:.2f}"
+            )
+            
+            # =========================
+            # ERROR RATE & ADAPTIVE THRESHOLD
+            # =========================
+            adaptive_threshold = Z_SCORE_THRESHOLD
+            if error_rate > (3 * 0.01):  # 0.01 = baseline error rate
+                adaptive_threshold = max(2.0, Z_SCORE_THRESHOLD - 0.5)
                 print(
-                    f"[DETECTOR] ip={ip} "
-                    f"rate={ip_rate} "
-                    f"mean={mean:.2f} "
-                    f"std={std:.2f} "
-                    f"z={z_score:.2f}"
+                    f"[DETECTOR] ADAPTIVE: error_rate={error_rate:.3f} "
+                    f"-> threshold lowered to {adaptive_threshold}"
                 )
-                
+            
+            # =========================
+            # ANOMALY DETECTION
+            # =========================
+            anomalous = (
+                z_score > adaptive_threshold
+                or ip_rate > (SPIKE_MULTIPLIER * mean)
+            )
+            
+            if anomalous and ip not in state.banned_ips:
                 # =========================
-                # ERROR RATE & ADAPTIVE THRESHOLD
+                # RATE-LIMIT ALERTS (only alert once per 60s per IP)
                 # =========================
-                baseline_error_rate = 0.01  # 1% baseline error rate
-                error_rate = 0
+                time_since_last_alert = now - state.last_alert_time[ip]
+                if time_since_last_alert < state.ALERT_COOLDOWN:
+                    print(f"[DETECTOR] Alert throttled for {ip} (cooldown active)")
+                    continue
                 
-                if state.ip_requests[ip] > 0:
-                    error_rate = (
-                        state.ip_errors[ip]
-                        / state.ip_requests[ip]
-                    )
+                print(f"[DETECTOR] ANOMALY DETECTED for {ip}")
                 
-                # If error rate is 3x baseline, tighten detection thresholds
-                adaptive_threshold = Z_SCORE_THRESHOLD
-                if error_rate > (3 * baseline_error_rate):
-                    adaptive_threshold = max(2.0, Z_SCORE_THRESHOLD - 0.5)
-                    print(
-                        f"[DETECTOR] ADAPTIVE: error_rate={error_rate:.3f} "
-                        f"-> threshold lowered to {adaptive_threshold}"
-                    )
-                
-                # =========================
-                # ANOMALY DETECTION
-                # =========================
-                # Fires if EITHER condition is true
-                anomalous = (
-                    z_score > adaptive_threshold
-                    or ip_rate > (SPIKE_MULTIPLIER * mean)
-                )
-                
-                if anomalous and ip not in state.banned_ips:
-                    print(f"[DETECTOR] ANOMALY DETECTED for {ip}")
+                with state.lock:
+                    if ip in state.banned_ips:
+                        continue
                     
                     state.offenses[ip] += 1
+                    state.last_alert_time[ip] = now
                     offense_count = state.offenses[ip]
                     
                     # =========================
@@ -168,7 +177,7 @@ def detector_worker(logs):
                     if offense_count <= len(BAN_DURATIONS):
                         duration = BAN_DURATIONS[offense_count - 1]
                     else:
-                        duration = None  # Permanent ban after all durations exhausted
+                        duration = None
                     
                     # =========================
                     # APPLY BLOCK
