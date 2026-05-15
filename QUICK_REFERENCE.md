@@ -315,25 +315,6 @@ Ban Duration: 600s
 | Implementation details | IMPLEMENTATION_GUIDE.md |
 | Code walkthrough | detector/*.py (read in order of main.py references) |
 
----
-
-## ✅ Pre-Submission Checklist
-
-- [ ] Daemon running 12+ continuous hours
-- [ ] Baseline learned (≥30 min of data)
-- [ ] Dashboard accessible at `http://<ip>:8000`
-- [ ] Slack webhook configured and alerts working
-- [ ] Screenshots captured:
-  - [ ] Tool running (`docker logs` output)
-  - [ ] Ban alert (Slack)
-  - [ ] Unban alert (Slack)
-  - [ ] Global alert (Slack)
-  - [ ] iptables rules (`sudo iptables -L -n`)
-  - [ ] Audit log entries
-  - [ ] Baseline graph over 2+ hours
-- [ ] README with server IP & dashboard URL
-- [ ] Blog post published on Hashnode/Dev.to
-- [ ] GitHub repo is public
 
 ---
 
