@@ -1,35 +1,72 @@
-version: '3.8'
-
 services:
-
   nextcloud:
-    image: kefaslungu/hng-nextcloud
-    container_name: nextcloud
-    restart: always
+    image: ${NEXTCLOUD_IMAGE:?}
+    container_name: ${NEXTCLOUD_CONTAINER_NAME:?}
+    restart: ${NEXTCLOUD_RESTART_POLICY:?}
     volumes:
-      - HNG-nginx-logs:/var/log/nginx:ro
+      - nginx-logs:${NEXTCLOUD_NGINX_LOG_PATH:?}:ro
+    cpus: ${NEXTCLOUD_CPU_LIMIT:?}
+    mem_limit: ${NEXTCLOUD_MEMORY_LIMIT:?}
+    healthcheck:
+      test: ["CMD-SHELL", "${NEXTCLOUD_HEALTHCHECK_CMD:?}"]
+      interval: ${NEXTCLOUD_HEALTHCHECK_INTERVAL:?}
+      timeout: ${NEXTCLOUD_HEALTHCHECK_TIMEOUT:?}
+      retries: ${NEXTCLOUD_HEALTHCHECK_RETRIES:?}
+      start_period: ${NEXTCLOUD_HEALTHCHECK_START_PERIOD:?}
+    networks:
+      - internal
 
   nginx:
-    image: nginx:latest
-    container_name: hng-nginx
-    restart: always
+    image: ${NGINX_IMAGE:?}
+    container_name: ${NGINX_CONTAINER_NAME:?}
+    restart: ${NGINX_RESTART_POLICY:?}
     ports:
-      - "80:80"
+      - ${NGINX_HOST_PORT:?}:${NGINX_CONTAINER_PORT:?}
     depends_on:
-      - nextcloud
+      nextcloud:
+        condition: service_healthy
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - HNG-nginx-logs:/var/log/nginx
+      - ${NGINX_CONFIG_SOURCE:?}:${NGINX_CONFIG_TARGET:?}:ro
+      - nginx-logs:${NGINX_LOG_PATH:?}
+    cpus: ${NGINX_CPU_LIMIT:?}
+    mem_limit: ${NGINX_MEMORY_LIMIT:?}
+    healthcheck:
+      test: ["CMD-SHELL", "${NGINX_HEALTHCHECK_CMD:?}"]
+      interval: ${NGINX_HEALTHCHECK_INTERVAL:?}
+      timeout: ${NGINX_HEALTHCHECK_TIMEOUT:?}
+      retries: ${NGINX_HEALTHCHECK_RETRIES:?}
+      start_period: ${NGINX_HEALTHCHECK_START_PERIOD:?}
+    networks:
+      - internal
 
   detector:
-    build: ./detector
-    container_name: anomaly-detector
-    restart: always
-    network_mode: host
-    privileged: true
+    build:
+      context: ${DETECTOR_BUILD_CONTEXT:?}
+    container_name: ${DETECTOR_CONTAINER_NAME:?}
+    restart: ${DETECTOR_RESTART_POLICY:?}
+    privileged: ${DETECTOR_PRIVILEGED:?}
     volumes:
-      - HNG-nginx-logs:/logs:ro
-    command: ["python", "-u", "main.py"]
+      - nginx-logs:${DETECTOR_LOG_PATH:?}:ro
+    command: ${DETECTOR_COMMAND:?}
+    depends_on:
+      nginx:
+        condition: service_healthy
+    cpus: ${DETECTOR_CPU_LIMIT:?}
+    mem_limit: ${DETECTOR_MEMORY_LIMIT:?}
+    healthcheck:
+      test: ["CMD-SHELL", "${DETECTOR_HEALTHCHECK_CMD:?}"]
+      interval: ${DETECTOR_HEALTHCHECK_INTERVAL:?}
+      timeout: ${DETECTOR_HEALTHCHECK_TIMEOUT:?}
+      retries: ${DETECTOR_HEALTHCHECK_RETRIES:?}
+      start_period: ${DETECTOR_HEALTHCHECK_START_PERIOD:?}
+    networks:
+      - internal
 
 volumes:
-  HNG-nginx-logs:
+  nginx-logs:
+    name: ${NGINX_LOG_VOLUME_NAME:?}
+
+networks:
+  internal:
+    name: ${INTERNAL_NETWORK_NAME:?}
+    internal: true
